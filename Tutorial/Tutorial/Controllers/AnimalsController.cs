@@ -76,32 +76,25 @@ public class AnimalsController : ControllerBase
         using var reader = command.ExecuteReader();
         List<Animal> animals = new List<Animal>();
 
-        int idAnimalOrdinal = reader.GetOrdinal("IdAnimal");
-        int nameOrdinal = reader.GetOrdinal("Name");
-
         while (reader.Read())
         {
-            animals.Add(new Animal()
+            Animal animal = new Animal();
+            for (int i = 0; i < reader.FieldCount; i++)
             {
-                IdAnimal = reader.GetInt32(idAnimalOrdinal),
-                Name = reader.GetString(nameOrdinal)
-            });
+                if (!reader.IsDBNull(i))
+                {
+                    string columnName = reader.GetName(i);
+                    object value = reader.GetValue(i);
+
+                    typeof(Animal).GetProperty(columnName)?.SetValue(animal, value);
+                }
+            }
+            animals.Add(animal);
         }
 
         return Ok(animals);
     }
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
 
     [HttpPost]
     public IActionResult AddAnimal(AddAnimal animal)
@@ -146,7 +139,7 @@ public class AnimalsController : ControllerBase
         using SqlConnection connection = new SqlConnection(_configuration.GetConnectionString("Default"));
         connection.Open();
     
-        //Definiujemy commanda
+        //Definiujemy commanda i wykonujemy
         SqlCommand command = new SqlCommand();
         command.Connection = connection;
         command.CommandText = "UPDATE Animal SET Name = @animalName, Description = @animalDescription, Category = @animalCategory, Area = @animalArea WHERE IdAnimal = @idAnimal";
@@ -162,7 +155,31 @@ public class AnimalsController : ControllerBase
     
     
     
+    [HttpDelete("{idAnimal}")]
+    public IActionResult DeleteAnimal(int idAnimal)
+    {
+        //Otwieramy polaczenie
+        using SqlConnection connection = new SqlConnection(_configuration.GetConnectionString("Default"));
+        connection.Open();
     
+        //Definiujemy commanda
+        SqlCommand command = new SqlCommand();
+        command.Connection = connection;
+        command.CommandText = "DELETE FROM Animal WHERE IdAnimal = @idAnimal";
+        command.Parameters.AddWithValue("@idAnimal", idAnimal);
+
+        //Wykonujemy commanda
+        int rowsAffected = command.ExecuteNonQuery();
+
+        if (rowsAffected > 0)
+        {
+            return NoContent(); 
+        }
+        else
+        {
+            return NotFound(); 
+        }
+    }
     
     
 }
